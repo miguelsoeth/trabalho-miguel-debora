@@ -1,12 +1,14 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GameController : MonoBehaviour
 {
+
     public Transform player1;
     public Transform player2;
     public float maxDistanceX = 50f;
-    
+
     void Update()
     {
         float distanceX = player2.position.x - player1.position.x;

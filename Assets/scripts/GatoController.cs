@@ -7,6 +7,7 @@ public class GatoController : PlayerController
         base.Start();
 
         jumpForce = jumpForce * 1.5f; // gato pula mais alto
+        tmpJumpForce = jumpForce;
         botaoEsquerdo = KeyCode.LeftArrow;
         botaoDireito = KeyCode.RightArrow;
         pular = KeyCode.UpArrow;
@@ -33,6 +34,6 @@ public class GatoController : PlayerController
         base.OnCollisionEnter(collision);
 
         if (collision.gameObject.CompareTag("Mud"))
-            Debug.Log("Gato tocou na lama!");
+            PlayerController.MorrerTodos();
     }
 }

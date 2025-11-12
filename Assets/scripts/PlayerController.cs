@@ -1,17 +1,29 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
 {
-    public float moveSpeed = 8f;
-    public float jumpForce = 6f; // força mais baixa
+    public static List<PlayerController> allPlayers = new List<PlayerController>();
+    private Renderer[] renderers;
+
+    public static float moveSpeed = 8f;
+    public float tmpMoveSpeed = 0f;
+    public float jumpForce = 6f; // forï¿½a mais baixa
+    public float tmpJumpForce = 6f;
     public float turnSpeed = 8f;
     public float fallMultiplier = 2.5f; // acelera descida
-    public float lowJumpMultiplier = 2f; // reduz "flutuação" quando solta o pulo
+    public float lowJumpMultiplier = 2f; // reduz "flutuaï¿½ï¿½o" quando solta o pulo
+
+    private Vector3 posicaoInicial;
 
     protected Rigidbody rb;
     protected bool facingRight = true;
     protected bool isGrounded = true;
+    protected static bool isDead = false;
+    public static event Action OnTodosGanharam;
+    public static event Action OnTodosMorreram;
 
     protected KeyCode botaoEsquerdo = KeyCode.A;
     protected KeyCode botaoDireito = KeyCode.D;
@@ -20,7 +32,10 @@ public class PlayerController : MonoBehaviour
     protected virtual void Start()
     {
         rb = GetComponent<Rigidbody>();
+        tmpMoveSpeed = moveSpeed;
+        tmpJumpForce = jumpForce;
         rb.constraints = RigidbodyConstraints.FreezeRotation; // evita tombar
+        posicaoInicial = transform.position;
     }
 
     protected virtual void Update()
@@ -28,6 +43,87 @@ public class PlayerController : MonoBehaviour
         Mover();
         Pular();
         AjustarGravidade();
+    }
+
+    private void Awake()
+    {
+        allPlayers.Add(this);
+        renderers = GetComponentsInChildren<Renderer>();
+    }
+
+    private void OnDestroy()
+    {
+        allPlayers.Remove(this);
+    }
+
+    private void SetVisibility(bool visible)
+    {
+        foreach (var rend in renderers)
+            rend.enabled = visible;
+    }
+
+    public static void MorrerTodos()
+    {
+        foreach (var player in allPlayers)
+        {
+            player.Morrer();
+        }
+
+        OnTodosMorreram?.Invoke();
+        GameTimer.Pausar();
+    }
+    
+    public static void GanharTodos()
+    {
+        foreach (var player in allPlayers)
+        {
+            player.Ganhou();
+        }
+
+        GameTimer.Pausar();
+        OnTodosGanharam?.Invoke();
+    }
+
+    public static bool Mortos()
+    {
+        if (!isDead) return false;
+        return true;
+    }
+
+    public static void ReviverTodos()
+    {
+        foreach (var player in allPlayers)
+        {
+            player.Reviver();
+        }
+
+        ScoreEvent.Resetar();
+        GameTimer.Resetar();
+        GameTimer.Retomar();
+    }
+
+    public void Reviver()
+    {
+        isDead = false;
+        moveSpeed = tmpMoveSpeed;
+        jumpForce = tmpJumpForce;
+        SetVisibility(true);
+        transform.position = posicaoInicial;
+        rb.linearVelocity = Vector3.zero;
+    }
+    
+    public void Morrer()
+    {
+        isDead = true;
+        moveSpeed = 0f;
+        jumpForce = 0f;
+        SetVisibility(false);
+    }
+    
+    public void Ganhou()
+    {
+        moveSpeed = 0f;
+        jumpForce = 0f;
     }
 
     protected void Mover()
@@ -59,12 +155,12 @@ public class PlayerController : MonoBehaviour
 
     void AjustarGravidade()
     {
-        // Aumenta a gravidade quando o player está caindo
+        // Aumenta a gravidade quando o player estï¿½ caindo
         if (rb.linearVelocity.y < 0)
         {
             rb.AddForce(Vector3.up * Physics.gravity.y * (fallMultiplier - 1) * rb.mass);
         }
-        // Aumenta um pouco a gravidade se o jogador soltar o botão antes do topo
+        // Aumenta um pouco a gravidade se o jogador soltar o botï¿½o antes do topo
         else if (rb.linearVelocity.y > 0 && !Input.GetKey(pular))
         {
             rb.AddForce(Vector3.up * Physics.gravity.y * (lowJumpMultiplier - 1) * rb.mass);
@@ -80,5 +176,8 @@ public class PlayerController : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Ground"))
             isGrounded = true;
+
+        if (collision.gameObject.CompareTag("morte"))
+            MorrerTodos();
     }
 }

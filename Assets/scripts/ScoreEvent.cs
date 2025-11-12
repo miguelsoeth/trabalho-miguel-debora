@@ -26,5 +26,16 @@ public static class ScoreEvent
                 break;
         }
 
+        OnScoreChanged?.Invoke(tipo);
+    }
+
+    public static void Resetar()
+    {
+        ScoreOsso = 0;
+        ScorePeixe = 0;
+        Debug.Log("ScoreEvent resetado.");
+
+        OnScoreChanged?.Invoke(TipoColetavel.Osso);
+        OnScoreChanged?.Invoke(TipoColetavel.Peixe);
     }
 }
